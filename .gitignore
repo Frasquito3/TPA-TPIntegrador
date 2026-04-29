@@ -1,0 +1,17 @@
+# Credenciales - NUNCA subir
+esp32\thingsboard_uploader\config.h
+
+# Arduino IDE
+build/
+*.elf
+*.hex
+*.bin
+/libraries/
+
+# PlatformIO
+.pio/
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
