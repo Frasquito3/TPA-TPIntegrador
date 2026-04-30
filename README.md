@@ -128,10 +128,11 @@ esp32/thingsboard_uploader/config.example.h  →  config.h
 Editar `config.h` con las credenciales personales:
 
 ```cpp
-#define WIFI_SSID     "nombre_de_tu_red"
-#define WIFI_PASSWORD "contraseña_wifi"
-#define TB_TOKEN      "token_del_dispositivo"
-#define TB_SERVER     "thingsboard.cloud"
+const char* WIFI_SSID     = "nombre_de_tu_red";
+const char* WIFI_PASSWORD = "contraseña_wifi";
+const char* TB_TOKEN      = "token_del_dispositivo";
+const char* TB_SERVER     = "thingsboard.cloud";
+const int   TB_PORT       = 1883;
 ```
 
 > 🔒 El archivo `config.h` **nunca se sube al repositorio**. Si alguien lo sube por error, las credenciales quedan expuestas públicamente y hay que cambiarlas de inmediato.
