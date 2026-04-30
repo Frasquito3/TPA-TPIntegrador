@@ -1,11 +1,25 @@
+/*
+ * ============================================================
+ *  ARCHIVO DE PRUEBA — NO ES EL CÓDIGO FINAL DEL PROYECTO
+ * ============================================================
+ * Recibe un JSON del Arduino por UART y sube el valor
+ * de luminosidad a ThingsBoard.
+ *
+ * El código definitivo del proyecto está en:
+ *   esp32/thingsboard_uploader/thingsboard_uploader.ino
+ * ============================================================
+ */
+
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include "config.h" 
+#include <ArduinoJson.h>
+#include "config.h"
+
+#define RX_PIN 16
+#define TX_PIN 17
 
 WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
-
-unsigned long ultima = 0;
 
 void conectarWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -31,21 +45,41 @@ void conectarMQTT() {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200);          // Serial monitor
+  Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);  // comunicación con Arduino
+
   conectarWiFi();
   mqtt.setServer(TB_SERVER, TB_PORT);
   conectarMQTT();
+
+  Serial.println("Esperando datos del Arduino...");
 }
 
 void loop() {
   if (!mqtt.connected()) conectarMQTT();
   mqtt.loop();
 
-  if (millis() - ultima >= 5000) {
-    ultima = millis();
+  // Leer línea completa del Arduino cuando esté disponible
+  if (Serial2.available()) {
+    String linea = Serial2.readStringUntil('\n');
+    linea.trim();
 
-    String json = "{\"luminosidad\": 42}";
-    bool ok = mqtt.publish("v1/devices/me/telemetry", json.c_str(), true);
-    Serial.println(ok ? "Enviado OK: " + json : "ERROR al enviar");
+    Serial.println("Recibido: " + linea);
+
+    // Parsear el JSON
+    StaticJsonDocument<64> doc;
+    DeserializationError error = deserializeJson(doc, linea);
+
+    if (error) {
+      Serial.println("Error al parsear JSON: " + String(error.c_str()));
+      return;
+    }
+
+    int luminosidad = doc["luminosidad"];
+
+    // Publicar en ThingsBoard
+    String payload = "{\"luminosidad\": " + String(luminosidad) + "}";
+    bool ok = mqtt.publish("v1/devices/me/telemetry", payload.c_str(), true);
+    Serial.println(ok ? "Enviado OK: " + payload : "ERROR al enviar");
   }
 }
