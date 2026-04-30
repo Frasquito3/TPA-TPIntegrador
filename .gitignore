@@ -1,5 +1,5 @@
 # Credenciales - NUNCA subir
-esp32\thingsboard_uploader\config.h
+esp32/thingsboard_uploader/config.h
 
 # Arduino IDE
 build/
