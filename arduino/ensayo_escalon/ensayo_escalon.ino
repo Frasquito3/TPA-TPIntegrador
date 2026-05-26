@@ -50,8 +50,8 @@
                                // Debe ser al menos 5τ para ver la respuesta completa.
                                // Si no sabés τ, dejar en 15 seg y ajustar después.
 
-#define TS_MS            100   // Período de muestreo (ms).
-                               // 100ms = 10 muestras/seg, suficiente para este sistema.
+#define TS_MS            10   // Período de muestreo (ms).
+                               // 10ms = 100 muestras/seg, suficiente para este sistema.
 
 // ── Variables del ensayo ─────────────────────────────────────
 unsigned long t_inicio     = 0;
@@ -63,7 +63,7 @@ int           pwm_actual   = PWM_INICIAL;
 
 // ============================================================
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(PIN_LED, OUTPUT);
   analogWrite(PIN_LED, PWM_INICIAL);
 
