@@ -6,14 +6,16 @@
  * del LDR para estimar un modelo de primer orden: G(s) = K/(τs+1).
  *
  * Uso:
- * - LED en pin 9
+ * - LED 1 en pin 9
+ * - LED 2 en pin 10
  * - LDR en A0
  * - Abrir el Serial Monitor a 115200 baudios
  * - Copiar la salida como CSV
  */
 
-#define PIN_LED   9
-#define PIN_LDR   A0
+#define PIN_LED_1   9
+#define PIN_LED_2  10
+#define PIN_LDR    A0
 
 #define PWM_INICIAL       0
 #define PWM_ESCALON     180
@@ -31,8 +33,10 @@ int           pwm_actual   = PWM_INICIAL;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_LED, OUTPUT);
-  analogWrite(PIN_LED, PWM_INICIAL);
+  pinMode(PIN_LED_1, OUTPUT);
+  pinMode(PIN_LED_2, OUTPUT);
+  analogWrite(PIN_LED_1, PWM_INICIAL);
+  analogWrite(PIN_LED_2, PWM_INICIAL);
 
   delay(1500);
 
@@ -54,7 +58,8 @@ void loop() {
 
   if (!escalon_aplicado && ahora >= t_escalon) {
     pwm_actual = PWM_ESCALON;
-    analogWrite(PIN_LED, pwm_actual);
+    analogWrite(PIN_LED_1, pwm_actual);
+    analogWrite(PIN_LED_2, pwm_actual);
     escalon_aplicado = true;
   }
 
@@ -71,7 +76,8 @@ void loop() {
     Serial.println(pwm_actual);
 
     if (escalon_aplicado && (ahora - t_escalon) >= TIEMPO_POST_MS) {
-      analogWrite(PIN_LED, 0);
+      analogWrite(PIN_LED_1, 0);
+      analogWrite(PIN_LED_2, 0);
       Serial.println("# FIN DEL ENSAYO");
       ensayo_terminado = true;
     }
