@@ -1,6 +1,5 @@
 /*
  * ENSAYO EN LAZO ABIERTO - Respuesta al escalón
- * TPI 2026 - Tecnologías para la Automatización
  *
  * Este sketch aplica un escalón de PWM al LED y registra la respuesta
  * del LDR para estimar un modelo de primer orden: G(s) = K/(τs+1).
@@ -10,7 +9,6 @@
  * - LED 2 en pin 10
  * - LDR en A0
  * - Abrir el Serial Monitor a 115200 baudios
- * - Copiar la salida como CSV
  */
 
 #define PIN_LED_1   9
