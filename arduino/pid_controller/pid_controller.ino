@@ -33,12 +33,12 @@ enum TipoControl : uint8_t {
 
 // Elegir uno:
 // CONTROL_P, CONTROL_PI o CONTROL_PID
-constexpr TipoControl CONTROLADOR = CONTROL_PI;
+constexpr TipoControl CONTROLADOR = CONTROL_PID;
 
 // Reemplazar estos valores por los obtenidos en MATLAB.
-constexpr float KP = 2.469512f;
-constexpr float KI = 10.513469f;
-constexpr float KD = 0.0f;
+constexpr float KP = 2.592988f;
+constexpr float KI = 11.039142f;
+constexpr float KD = 0.029032f;
 
 // Factor 1.0 = valores originales de Ziegler-Nichols.
 // Si la respuesta resulta excesivamente agresiva, puede ensayarse
@@ -49,8 +49,8 @@ constexpr float FACTOR_AJUSTE = 1.0f;
 constexpr int SETPOINT_INICIAL = 177;
 constexpr int SETPOINT_FINAL = 187;
 
-// Aproximacion del PWM necesario para mantener el punto medio:
-// PWM ~= 150 / 1.1838 = 126.7
+// PWM de polarizacion determinado experimentalmente.
+// Con PWM cercano a 123, la salida se ubica alrededor de 177 ADC.
 constexpr int PWM_BIAS = 123;
 
 // Temporizacion.
@@ -224,9 +224,11 @@ void loop() {
       PWM_MIN,
       PWM_MAX);
 
+  const bool saturadoFinal = salidaNoSaturada > PWM_MAX || salidaNoSaturada < PWM_MIN;
+
   aplicarPWM(pwm);
   yAnterior = yFiltrada;
-
+ 
   Serial.print(t);
   Serial.print(',');
   Serial.print(yRaw);
@@ -238,5 +240,17 @@ void loop() {
   Serial.print(pwm);
   Serial.print(',');
   Serial.print(error, 3);
+  Serial.print(',');
+  Serial.print(terminoP, 3);
+  Serial.print(',');
+  Serial.print(terminoI, 3);
+  Serial.print(',');
+  Serial.print(terminoD, 3);
+  Serial.print(',');
+  Serial.print(derivadaFiltrada, 3);
+  Serial.print(',');
+  Serial.print(salidaNoSaturada, 3);
+  Serial.print(',');
+  Serial.print(saturadoFinal ? 1 : 0);
   Serial.println(';');
 }

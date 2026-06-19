@@ -498,6 +498,11 @@ void callbackMqtt(
     comando = "LOAD_PI";
 
   } else if (
+      strcmp(metodo, "loadPID") == 0
+  ) {
+    comando = "LOAD_PID";
+
+  } else if (
       strcmp(metodo, "ping") == 0
   ) {
     responderRpc(

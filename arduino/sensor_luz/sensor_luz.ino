@@ -72,6 +72,10 @@ constexpr float KP_PI_FINAL = 2.469512f;
 constexpr float KI_PI_FINAL = 10.513469f;
 constexpr float KD_PI_FINAL = 0.0f;
 
+constexpr float KP_PID_FINAL = 2.592988f;
+constexpr float KI_PID_FINAL = 11.039142f;
+constexpr float KD_PID_FINAL = 0.029032f;
+
 // Límites de seguridad para parámetros recibidos remotamente.
 constexpr float KP_LIMIT = 50.0f;
 constexpr float KI_LIMIT = 500.0f;
@@ -180,6 +184,10 @@ void loadPFinal() {
 
 void loadPiFinal() {
   setGains(KP_PI_FINAL, KI_PI_FINAL, KD_PI_FINAL);
+}
+
+void loadPidFinal() {
+  setGains(KP_PID_FINAL, KI_PID_FINAL, KD_PID_FINAL);
 }
 
 void runControlStep() {
@@ -302,6 +310,10 @@ void processCommand(const char* command) {
   } else if (strcmp(command, "LOAD_PI") == 0) {
     loadPiFinal();
     sendAck(F("LOAD_PI"));
+  
+  } else if (strcmp(command, "LOAD_PID") == 0) {
+    loadPidFinal();
+    sendAck(F("LOAD_PID"));
 
   } else if (strcmp(command, "PING") == 0) {
     Serial.println(F("PONG"));
