@@ -186,7 +186,7 @@ La separación de períodos permite mantener el control local sin depender de la
 
 La guía de conexiones, configuración del entorno y puesta en marcha se encuentra en:
 
-[docs/configuracion_y_conexion/configuracion_y_conexion.md](docs/configuracion_y_conexion/configuracion_y_conexion.md)
+[docs/configuracion_y_conexion/configuracion_y_conexion.md](docs/configuracion_y_conexion.md)
 
 ## Integrantes
 
