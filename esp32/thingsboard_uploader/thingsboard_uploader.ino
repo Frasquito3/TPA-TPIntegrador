@@ -1,23 +1,9 @@
 /*
- * TPI 2026 - GATEWAY ESP32 PARA THINGSBOARD
+ * Gateway ESP32 entre el Arduino UNO y ThingsBoard.
+ * Recibe telemetría por UART, publica mediante MQTT
+ * y reenvía las solicitudes RPC al Arduino.
  *
- * Este archivo conserva la lógica final del gateway:
- * - recibe telemetría del Arduino por UART2;
- * - publica los datos en ThingsBoard;
- * - recibe RPC desde ThingsBoard;
- * - reenvía comandos al Arduino.
- *
- * Los datos privados y dependientes del entorno se encuentran
- * en config.h, siguiendo el mismo criterio que un archivo .env.
- *
- * IMPORTANTE:
- * 1. Copiar config.example.h como config.h.
- * 2. Completar WiFi, token y datos de ThingsBoard.
- * 3. No compartir ni subir config.h al repositorio.
- *
- * Librerías:
- * - PubSubClient
- * - ArduinoJson 6.x
+ * Las credenciales se almacenan en config.h.
  */
 
 #include <Arduino.h>
@@ -26,9 +12,7 @@
 #include <ArduinoJson.h>
 #include "config.h"
 
-// ============================================================
-// UART ARDUINO <-> ESP32
-// ============================================================
+// UART Arduino–ESP32
 
 constexpr uint8_t ESP32_RX2 = 16;
 constexpr uint8_t ESP32_TX2 = 17;
@@ -36,9 +20,7 @@ constexpr uint32_t ARDUINO_BAUD = 115200;
 
 HardwareSerial ArduinoPort(2);
 
-// ============================================================
-// TOPICS MQTT DE THINGSBOARD
-// ============================================================
+// Topics MQTT
 
 constexpr char TB_TELEMETRY_TOPIC[] =
     "v1/devices/me/telemetry";
@@ -49,9 +31,7 @@ constexpr char TB_RPC_REQUEST_TOPIC[] =
 constexpr char TB_RPC_RESPONSE_PREFIX[] =
     "v1/devices/me/rpc/response/";
 
-// ============================================================
-// CONEXIÓN MQTT
-// ============================================================
+// Conexión MQTT
 
 WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
@@ -59,17 +39,14 @@ PubSubClient mqtt(wifiClient);
 constexpr uint32_t WIFI_RETRY_MS = 10000;
 constexpr uint32_t MQTT_RETRY_MS = 5000;
 
-// El Arduino sigue enviando datos por UART con alta frecuencia,
-// pero el ESP32 publica en ThingsBoard solamente cada 4 segundos.
+// La telemetría se publica en ThingsBoard cada cuatro segundos.
 constexpr uint32_t CLOUD_TELEMETRY_PERIOD_MS = 4000;
 
 uint32_t lastCloudTelemetryMs = 0;
 uint32_t lastWifiAttemptMs = 0;
 uint32_t lastMqttAttemptMs = 0;
 
-// ============================================================
-// ESTADO DEL GATEWAY
-// ============================================================
+// Estado del gateway
 
 char serialLine[128];
 size_t serialLineLength = 0;
@@ -78,9 +55,7 @@ uint32_t lastArduinoTelemetryMs = 0;
 bool lastReportedArduinoOnline = false;
 bool lastSentCloudState = false;
 
-// ============================================================
-// FUNCIONES AUXILIARES
-// ============================================================
+// Funciones auxiliares
 
 const char* obtenerTopicTelemetria() {
   return USE_UTN_CUSTOM_TELEMETRY_TOPIC
@@ -93,6 +68,7 @@ void enviarComandoArduino(const String& comando) {
   ArduinoPort.print('\n');
 }
 
+// Informa al Arduino si el gateway está conectado a ThingsBoard.
 void actualizarIndicadorThingsBoardArduino() {
   const bool conectado =
       WiFi.status() == WL_CONNECTED &&
@@ -131,19 +107,10 @@ void publicarEstadoGateway(bool arduinoOnline) {
   );
 }
 
-// ============================================================
-// TELEMETRÍA RECIBIDA DESDE EL ARDUINO
-// ============================================================
+// Telemetría recibida desde el Arduino
 
 void procesarTelemetriaArduino(const char* linea) {
-  /*
-   * Formato enviado por el Arduino:
-   *
-   * T,y100,setpoint,error100,pwm,kp10000,ki10000,kd10000,modo,saturado
-   *
-   * Ejemplo:
-   * T,18702,187,-2,129,24695,105135,0,A,0
-   */
+  // Formato: T,y100,r,e100,u,kp10000,ki10000,kd10000,modo,saturado
 
   if (strncmp(linea, "T,", 2) != 0) {
     Serial.print(F("[Arduino] "));
@@ -187,8 +154,7 @@ void procesarTelemetriaArduino(const char* linea) {
     return;
   }
 
-  // Aunque se reciben datos del Arduino cada 200 ms,
-  // solamente se publica una muestra periódica en ThingsBoard.
+  // Limita la frecuencia de publicación sin descartar la recepción UART.
   const uint32_t ahora = millis();
 
   if (
@@ -262,9 +228,7 @@ void leerPuertoArduino() {
   }
 }
 
-// ============================================================
-// PARÁMETROS RPC
-// ============================================================
+// Parámetros RPC
 
 bool extraerParametroNumerico(
     JsonVariantConst params,
@@ -315,6 +279,7 @@ bool extraerParametroTexto(
   return false;
 }
 
+// Confirma que el gateway recibió y procesó la solicitud.
 void responderRpc(
     const char* requestId,
     bool ok,
@@ -345,9 +310,7 @@ void responderRpc(
   mqtt.publish(topicRespuesta, payload);
 }
 
-// ============================================================
-// RECEPCIÓN DE RPC DESDE THINGSBOARD
-// ============================================================
+// Recepción de RPC
 
 void callbackMqtt(
     char* topic,
@@ -537,9 +500,7 @@ void callbackMqtt(
   );
 }
 
-// ============================================================
-// CONEXIÓN WIFI
-// ============================================================
+// Conexión WiFi
 
 void mantenerWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
@@ -568,9 +529,7 @@ void mantenerWiFi() {
   );
 }
 
-// ============================================================
-// CONEXIÓN MQTT
-// ============================================================
+// Conexión MQTT
 
 void mantenerMqtt() {
   if (
@@ -641,9 +600,7 @@ void mantenerMqtt() {
   }
 }
 
-// ============================================================
-// SETUP
-// ============================================================
+// Setup
 
 void setup() {
   Serial.begin(115200);
@@ -685,9 +642,7 @@ void setup() {
   );
 }
 
-// ============================================================
-// LOOP
-// ============================================================
+// Loop
 
 void loop() {
   leerPuertoArduino();

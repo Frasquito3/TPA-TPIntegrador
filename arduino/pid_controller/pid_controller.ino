@@ -1,18 +1,10 @@
 /*
- * PRUEBA AUTOMATICA P / PI / PID
- * TPI Tecnologias para la Automatizacion 2026
+ * Ensayo automático de control P, PI o PID.
+ * Los parámetros de la corrida se configuran al comienzo del archivo.
  *
- * No utiliza comandos por Serial.
- * Para cada ensayo solo hay que modificar los parametros de la seccion
- * "CONFIGURACION DEL ENSAYO", cargar el programa y copiar la matriz
- * completa que aparece en el monitor serie.
- *
- * Salida compatible con MATLAB:
- *
- * datos = [
- * tiempo_ms,y_raw,y_filtrada,setpoint,pwm,error;
- * ...
- * ];
+ * La salida se imprime como una matriz compatible con MATLAB:
+ * tiempo, medición, medición filtrada, referencia, PWM, error,
+ * términos P, I y D, derivada filtrada, salida calculada y saturación.
  */
 
 #include <Arduino.h>
@@ -27,47 +19,36 @@ enum TipoControl : uint8_t {
   CONTROL_PID = 2
 };
 
-// ============================================================
-// CONFIGURACION DEL ENSAYO
-// ============================================================
+// Configuración del ensayo
 
-// Elegir uno:
-// CONTROL_P, CONTROL_PI o CONTROL_PID
+// Controlador utilizado en la corrida
 constexpr TipoControl CONTROLADOR = CONTROL_PID;
 
-// Reemplazar estos valores por los obtenidos en MATLAB.
+// Ganancias utilizadas en la corrida.
 constexpr float KP = 2.592988f;
 constexpr float KI = 11.039142f;
 constexpr float KD = 0.029032f;
 
-// Factor 1.0 = valores originales de Ziegler-Nichols.
-// Si la respuesta resulta excesivamente agresiva, puede ensayarse
-// posteriormente 0.75, 0.50, etc. El primer ensayo debe ser 1.0.
+// Factor común aplicado a las tres ganancias.
 constexpr float FACTOR_AJUSTE = 1.0f;
 
-// Referencias elegidas dentro del rango alcanzable de la planta.
+// Referencias de la prueba.
 constexpr int SETPOINT_INICIAL = 177;
 constexpr int SETPOINT_FINAL = 187;
 
-// PWM de polarizacion determinado experimentalmente.
-// Con PWM cercano a 123, la salida se ubica alrededor de 177 ADC.
+// PWM necesario para sostener aproximadamente 177 ADC.
 constexpr int PWM_BIAS = 123;
 
-// Temporizacion.
+// Temporizacion del ensayo.
 constexpr uint16_t TS_MS = 10;
 constexpr float TS_S = TS_MS / 1000.0f;
 constexpr uint16_t TIEMPO_PRE_MS = 3000;
 constexpr uint16_t TIEMPO_POST_MS = 12000;
 
-// Filtro de medicion.
-// 0 < ALPHA_Y <= 1.
-// Un valor menor filtra mas, pero agrega retardo.
+// Un valor menor de ALPHA_Y aumenta el filtrado y el retardo.
 constexpr float ALPHA_Y = 0.25f;
 
-// Filtro derivativo.
 constexpr float ALPHA_D = 0.20f;
-
-// ============================================================
 
 constexpr int PWM_MIN = 0;
 constexpr int PWM_MAX = 255;
@@ -134,6 +115,7 @@ void loop() {
 
   ultimoControlMs += TS_MS;
 
+  // Evita ejecutar varios ciclos juntos si el programa quedó atrasado.
   if ((unsigned long)(ahora - ultimoControlMs) > 5UL * TS_MS) {
     ultimoControlMs = ahora;
   }
@@ -180,6 +162,7 @@ void loop() {
     terminoI = ki * integralCandidata;
   }
 
+  // Derivada negativa de la medición para evitar derivative kick.
   const float derivadaMedicion =
       -(yFiltrada - yAnterior) / TS_S;
 
@@ -205,7 +188,7 @@ void loop() {
       (saturaArriba && error > 0.0f) ||
       (saturaAbajo && error < 0.0f);
 
-  // Anti-windup por integracion condicional.
+  // Anti-windup por integración condicional.
   if ((CONTROLADOR == CONTROL_PI || CONTROLADOR == CONTROL_PID) &&
       !errorEmpujaSaturacion) {
     integral = integralCandidata;

@@ -1,14 +1,7 @@
 /*
- * ENSAYO EN LAZO ABIERTO - Respuesta al escalón
- *
- * Este sketch aplica un escalón de PWM al LED y registra la respuesta
- * del LDR para estimar un modelo de primer orden: G(s) = K/(τs+1).
- *
- * Uso:
- * - LED 1 en pin 9
- * - LED 2 en pin 10
- * - LDR en A0
- * - Abrir el Serial Monitor a 115200 baudios
+ * Ensayo en lazo abierto para identificar la planta.
+ * Aplica un escalón PWM a los dos LEDs y registra la lectura del LDR.
+ * Salida CSV por Serial a 115200 baudios.
  */
 
 #define PIN_LED_1   9

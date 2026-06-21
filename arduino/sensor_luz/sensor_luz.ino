@@ -1,38 +1,16 @@
 /*
- * TPI 2026 - CONTROL FINAL EN ARDUINO UNO
+ * Control final de luminosidad en Arduino UNO.
+ * Ejecuta control P, PI o PID, recibe comandos del ESP32
+ * y envía telemetría por el puerto serie.
  *
- * Control PI por defecto, con posibilidad de modificar:
- * - setpoint
- * - Kp, Ki, Kd
- * - modo AUTO / MANUAL
- * - PWM manual
- *
- * También permite cargar los presets finales P y PI.
- *
- * Hardware:
- *   LED 1: pin 9
- *   LED 2: pin 10
- *   LDR: A0
- *   LCD 16x2 I2C:
- *     SDA: A4
- *     SCL: A5
- *   Comunicación con ESP32:
- *     Arduino RX0 (pin 0) <- ESP32 TX2 (GPIO 17)
- *     Arduino TX1 (pin 1) -> divisor de tensión -> ESP32 RX2 (GPIO 16)
- *     GND Arduino y GND ESP32 unidos
- *
- * IMPORTANTE:
- * Desconectar los cables de los pines 0 y 1 mientras se carga el programa
- * al Arduino. Reconectarlos después de finalizar la carga.
+ * Desconectar los pines 0 y 1 antes de programar el Arduino.
  */
 
 #include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// ============================================================
-// PINES Y HARDWARE
-// ============================================================
+// Pines y hardware
 
 constexpr uint8_t PIN_LED_1 = 9;
 constexpr uint8_t PIN_LED_2 = 10;
@@ -44,9 +22,7 @@ constexpr uint8_t LCD_ROWS    = 2;
 
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
 
-// ============================================================
-// CONTROL Y TEMPORIZACIÓN
-// ============================================================
+// Control y temporización
 
 constexpr uint32_t CONTROL_PERIOD_US = 10000UL;
 constexpr float TS_S = 0.010f;
@@ -81,9 +57,7 @@ constexpr float KP_LIMIT = 50.0f;
 constexpr float KI_LIMIT = 500.0f;
 constexpr float KD_LIMIT = 20.0f;
 
-// ============================================================
-// ESTADO DEL CONTROLADOR
-// ============================================================
+// Estado del controlador
 
 enum class ControlMode : uint8_t {
   AUTO,
@@ -92,8 +66,7 @@ enum class ControlMode : uint8_t {
 
 ControlMode controlMode = ControlMode::AUTO;
 
-// Arranque conservador: primero regula alrededor del punto de operación.
-// Desde ThingsBoard se puede cambiar luego el setpoint a 187.
+// Referencia inicial de operación.
 int setpoint = 177;
 int manualPwm = PWM_BIAS;
 
@@ -119,9 +92,7 @@ uint32_t lastDisplayMs = 0;
 char commandBuffer[64];
 uint8_t commandLength = 0;
 
-// ============================================================
-// FUNCIONES DE HARDWARE
-// ============================================================
+// Lectura y actuación
 
 int readLdrAverage() {
   long sum = 0;
@@ -139,10 +110,9 @@ void applyPwm(int pwm) {
   analogWrite(PIN_LED_2, currentPwm);
 }
 
-// ============================================================
-// CONTROL
-// ============================================================
+// Control
 
+// Ajusta el integrador para conservar aproximadamente el PWM actual.
 void prepareBumplessIntegral() {
   if (ki <= 0.000001f) {
     integralState = 0.0f;
@@ -196,6 +166,7 @@ void runControlStep() {
   yFiltered += ALPHA_Y * (static_cast<float>(yRaw) - yFiltered);
   currentError = static_cast<float>(setpoint) - yFiltered;
 
+  // Derivada negativa de la medición para evitar el salto derivativo.
   const float measuredDerivative =
       -(yFiltered - yPrevious) / TS_S;
 
@@ -256,10 +227,7 @@ void runControlStep() {
   yPrevious = yFiltered;
 }
 
-// ============================================================
-// COMANDOS DESDE EL ESP32
-// ============================================================
-
+// Comandos desde el ESP32
 void sendAck(const __FlashStringHelper* name) {
   Serial.print(F("ACK,"));
   Serial.println(name);
@@ -341,13 +309,10 @@ void readSerialCommands() {
   }
 }
 
-// ============================================================
-// TELEMETRÍA Y DISPLAY
-// ============================================================
+// Telemetría y display
 
 void sendTelemetry() {
-  // Se transmiten enteros escalados para no depender de printf con float
-  // en el ATmega328P y para reducir el tamaño de cada mensaje.
+  // Se transmiten enteros escalados para reducir el tamaño del mensaje.
   const long y100      = lround(yFiltered * 100.0f);
   const long error100  = lround(currentError * 100.0f);
   const long kp10000   = lround(kp * 10000.0f);
@@ -374,8 +339,7 @@ void sendTelemetry() {
   );
 
   if (length > 0 && length < static_cast<int>(sizeof(line))) {
-    // Si el buffer serial está ocupado, se omite esta muestra de telemetría.
-    // El control de 10 ms continúa funcionando.
+    // Se omite la muestra si no hay espacio suficiente en el buffer serial.
     if (Serial.availableForWrite() >= length) {
       Serial.write(
           reinterpret_cast<const uint8_t*>(line),
@@ -431,9 +395,7 @@ void updateDisplay() {
   printPaddedLine(1, line2);
 }
 
-// ============================================================
-// SETUP Y LOOP
-// ============================================================
+// Setup
 
 void setup() {
   Serial.begin(115200);
@@ -462,6 +424,8 @@ void setup() {
   updateDisplay();
 }
 
+// Loop
+
 void loop() {
   readSerialCommands();
 
@@ -470,8 +434,7 @@ void loop() {
   if (static_cast<int32_t>(nowUs - nextControlUs) >= 0) {
     nextControlUs += CONTROL_PERIOD_US;
 
-    // Si hubo un retraso grande, se recupera el calendario sin ejecutar
-    // varios ciclos juntos.
+    // Evita ejecutar varios ciclos juntos después de un retraso.
     if (static_cast<int32_t>(nowUs - nextControlUs) >
         static_cast<int32_t>(5UL * CONTROL_PERIOD_US)) {
       nextControlUs = nowUs + CONTROL_PERIOD_US;
