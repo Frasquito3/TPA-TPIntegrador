@@ -111,7 +111,7 @@ Parámetros comunes de la implementación:
 
 ## Puesta en marcha
 
-1. Consultar la guía de [configuración y conexiones](docs/configuracion_y_conexion/configuracion_y_conexion.md).
+1. Consultar la guía de [configuración y conexiones](docs/configuracion_y_conexion.md).
 2. Copiar el archivo:
 
    ```text
